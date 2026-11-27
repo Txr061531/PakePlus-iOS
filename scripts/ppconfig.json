@@ -163,13 +163,13 @@
     "ios": {
         "name": "AdpDynamic",
         "showName": "应用系统开发交付平台",
-        "version": "2.4.0",
-        "webUrl": "http://8.136.213.218",
+        "version": "3.0.0",
+        "webUrl": "https://www.pakeplus.com/",
         "id": "com.tengxingran.adp",
         "icon": "./app-icon.png",
-        "desc": "应用系统开发交付平台 离线版（内置全部页面，管理员可离线分发）",
+        "desc": "应用系统开发交付平台 3.0.0（内置全部页面 + 管理员签发器）",
         "pubBody": "应用系统开发交付平台 离线版",
-        "isHtml": false,
+        "isHtml": true,
         "debug": false,
         "safeArea": "all"
     },
