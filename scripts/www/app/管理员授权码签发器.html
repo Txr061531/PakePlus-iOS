@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>管理员授权码签发器 · 应用系统开发交付平台</title>
+<link rel="stylesheet" href="../css/app.css" />
+<style>
+  body{margin:0;padding:0;background:#0b1220}
+  .wrap{max-width:1040px;margin:0 auto;padding:24px 20px 70px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+  .top h1{font-size:21px;color:#fff;margin:0;font-weight:600;letter-spacing:.5px}
+  .top .sub{color:#8fa3c8;font-size:13px;margin-top:6px}
+  .card{background:#fff;border-radius:16px;padding:20px 22px;margin-bottom:16px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+  .card h2{font-size:16px;margin:0 0 14px;border-left:4px solid #2f6df6;padding-left:10px;color:#233049}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:190px}
+  label{display:block;font-size:13px;color:#5b6b86;margin-bottom:6px}
+  input,select,textarea{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d6dce8;border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:#233049}
+  textarea{min-height:120px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.6}
+  .btn{display:inline-block;border:0;border-radius:9px;padding:10px 18px;font-size:14px;cursor:pointer;background:#2f6df6;color:#fff;font-family:inherit}
+  .btn.ghost{background:#eef3ff;color:#2f6df6}
+  .btn.sm{padding:7px 12px;font-size:13px}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .actions{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+  th,td{border-bottom:1px solid #eef1f6;padding:8px 6px;text-align:left;vertical-align:top;color:#233049}
+  th{color:#5b6b86;font-weight:500;background:#f7f9fd}
+  code{font-family:ui-monospace,Consolas,monospace;font-size:12px;word-break:break-all}
+  .hint{font-size:13px;color:#7a8499;margin-top:12px;line-height:1.8}
+  #deny{display:none;background:#fff;border-radius:16px;padding:26px;margin:40px auto;max-width:520px;text-align:center;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+  #deny h2{color:#e0483d;font-size:18px;margin:0 0 10px}
+  #deny p{color:#5b6b86;font-size:14px;line-height:1.8;margin:0 0 18px}
+</style>
+</head>
+<body>
+<div id="deny">
+  <h2>仅管理员可打开</h2>
+  <p>签发器会调用本机私钥签发授权串，只对管理员开放。<br>请先在平台首页用管理员账号登录，再回来打开本页。</p>
+  <button class="btn" onclick="location.href='index.html'">去平台登录</button>
+</div>
+
+<div class="wrap" id="main" style="display:none">
+  <div class="top">
+    <div>
+      <h1>管理员授权码签发器</h1>
+      <div class="sub">离线签发 · 私钥只在本机 · RSA-SHA256 签名 · 一次可签整班</div>
+    </div>
+    <button class="btn ghost sm" onclick="location.href='index.html'">返回平台</button>
+  </div>
+
+  <div class="card">
+    <h2>签发设置</h2>
+    <div class="row">
+      <div>
+        <label>角色</label>
+        <select id="role">
+          <option value="admin">管理员（给管理员机下发 Key 用）</option>
+          <option value="student">学生（本人学号使用，转给别人失效）</option>
+        </select>
+      </div>
+      <div>
+        <label>有效天数</label>
+        <input id="days" type="number" min="1" max="3650" value="30" />
+      </div>
+      <div>
+        <label>到期日（可留空，按天数算）</label>
+        <input id="expdate" type="date" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div style="flex:2">
+        <label>学号 / 账号（一行一个，可粘贴整班名单；支持“学号,姓名”）</label>
+        <textarea id="list" placeholder="GZ25207113,张三&#10;GZ25207114,李四&#10;藤星冉."></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btn-gen">生成授权串</button>
+      <button class="btn ghost" id="btn-csv" disabled>导出 CSV</button>
+      <button class="btn ghost" id="btn-copy" disabled>复制全部</button>
+      <button class="btn ghost" id="btn-clear">清空</button>
+    </div>
+    <div class="hint">
+      规则：授权串格式为 <code>ADP1|学号|角色|到期毫秒时间戳|随机串.签名</code>，签名用本机私钥生成，平台端用内置公钥验签，改动任何一个字符都会失效。
+    </div>
+  </div>
+
+  <div class="card" id="result-card" style="display:none">
+    <h2>签发结果 <span style="font-size:13px;color:#7a8499;font-weight:400" id="count"></span></h2>
+    <table>
+      <thead><tr><th style="width:130px">学号/账号</th><th style="width:110px">姓名</th><th style="width:80px">角色</th><th>授权串</th><th style="width:130px">到期</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+var PRIV_PEM = '-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCbcJtNlr0uKwE0\np/Vw3Dz2VB3M3whyoXPCcDdeuWEs0Kn5LfAHr3THSNwxahVq0+nzWILgRa95j1MT\nN22sZ45nRp5sNLhjAohnKF+1LFKz2xwYVgJCMaP2B34TB98rKq7pGEo0Maz6MVv1\nGqnurp4VFxH0oKjV2U9GgWqLgERB1C3rw8EKVuwjBIu988B6RAyOtgAv8qP+gjRl\nRN0hW8xFndwhGRwKRdulKCr/qtyMLxvaQipSkMoc7phfF1vJPxvcT3LVC3MyGsYa\nEfdkSbySkPBPg5gFbYOFC+v96nt+L4tPkR+w6vgEFAYxQ76t7/J58QrPvlDpZxeo\n0ejpz2RTAgMBAAECggEAEJEi7FUZmrcYrM0N+tZuZO64MmK/GsCcfufI7v6hHc6r\nnxRHVfpcXvUkCtw8piMp9zbC1DZ5KmKdPxoURWDQK6+6KNxBnsPhV+VUthGgSu0a\nhHl+SiHSUOGhjVO0dHxbIhrlpcR5pDzoiSorXHYeAS9xSXpqJEjCC0i122JzY/SX\nsPTy9+FPTupskTqHBasNmfcC1R4OGdHrC1mLMahmaXtlooc0hCWupR5yDwYZ3xtr\nIDnqIP7SGJaDbvKB9vS0tzsHm/lqEjkur7sHDwiOIkpuJ9XMmTfraS4fYmdX6opK\nbjkwv+CmbLyihnorBVgUsPC90uenGr+3z+72Fu2jaQKBgQC2BjL5caNE+rpqSxE4\nJeo8KD8a/Jfj89gWDzf3tq9zG1nrbAwEpsgagjAid/P2Qk+Rs3BTC4hrR0noVMjA\nbkUPt/rTqs5hnEUlOiCnvpG/RaYYysv8apflKfrNU9QGB6T6369YiIPn11bnsJxw\n0uP4hfrfaMEKXTzlQI4SxjqNvwKBgQDanJJugbZI7Av9w7HQx4CUcLQ313DEz4wk\n0DhFENKI9gJxRy4vRYEY4kdDl7mBa5SeW9nH7KfeJDwypNNR0Y0sI8DkQAH8vqc7\nnTapG4//irBCRSGVaQt4kOLYylAiWF7qSK4tAW3VFLG2Ho2FXJBkM1BDh+uSw8Ty\n+p3ZEzV2bQKBgAbgfRSHgo+cmWZip6fjZtIXAytV17c5AzTyJj8pm79RjTgjwOB8\nHJtDx+XFemYXY0Ix8VBx4xmKe/RXH66Fe/54CPXuQhXV/ZbGd21e+cqsKvZM0yAa\nNtrllyAixqPjrgv8X3eM0M71h8cBGSf6D7rX9P5zyrdFhoNyyOtUqempAoGBAISE\nauNf786uf+pZKT3k4ZWZ6DT9fNdg9JQQQDvloanybrKaMm3nVQVvjUF1BLdmLlX8\nWbyuQWgQUQlmDs9HFquOFMyH3GyIabliaJMEKTr/qC7T1zLJ1XFFaq19nivjo82j\nNyoC9sA25i7+wEz6OnDzBhGZn/x8fbPIpczDryHVAoGBAKH9bAV/d8Wm6uauWFwp\nfJUlUSB24mhRIqs557qPF0Qknq5p+DkjWIgchGYFkX8AKVwXlOyUGSLfPZbwAdST\nx0wOoBLbOAi5QbFIuQjtumR1BeRlPsXtzF91HXW+J689crNtNL45VdwjEPQs7Et7\nVsMAwjQOFVp2PfCJF7xq24Nr\n-----END PRIVATE KEY-----';
+
+function b64url(bytes){
+  var bin = '';
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function pemToDer(pem){
+  var b = pem.replace(/-----BEGIN PRIVATE KEY-----/,'').replace(/-----END PRIVATE KEY-----/,'').replace(/\s+/g,'');
+  var bin = atob(b), out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out.buffer;
+}
+var _keyPromise = null;
+function getKey(){
+  if (_keyPromise) return _keyPromise;
+  _keyPromise = crypto.subtle.importKey('pkcs8', pemToDer(PRIV_PEM),
+      { name:'RSASSA-PKCS1-v1_5', hash:'SHA-256' }, false, ['sign']);
+  return _keyPromise;
+}
+function nonce(){
+  var s = '', t = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  var buf = new Uint8Array(10);
+  crypto.getRandomValues(buf);
+  for (var i = 0; i < buf.length; i++) s += t[buf[i] % t.length];
+  return s;
+}
+function signOne(sid, role, exp){
+  var payload = 'ADP1|' + sid + '|' + role + '|' + exp + '|' + nonce();
+  return getKey().then(function(k){
+    var data = new TextEncoder().encode(payload);
+    return crypto.subtle.sign({ name:'RSASSA-PKCS1-v1_5' }, k, data);
+  }).then(function(sig){
+    return payload + '.' + b64url(new Uint8Array(sig));
+  });
+}
+
+var results = [];
+
+function parseList(text){
+  return text.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; })
+    .map(function(l){
+      var parts = l.split(/[,，\t]/);
+      return { sid: (parts[0] || '').trim(), name: (parts[1] || '').trim() };
+    }).filter(function(o){ return o.sid.length > 0; });
+}
+
+function computeExp(){
+  var d = document.getElementById('expdate').value;
+  if (d) { return new Date(d + ' 23:59:59').getTime(); }
+  var days = parseInt(document.getElementById('days').value || '30', 10);
+  return Date.now() + days * 86400000;
+}
+
+document.getElementById('btn-gen').onclick = function(){
+  var btn = this;
+  var list = parseList(document.getElementById('list').value);
+  if (!list.length) { alert('先填学号或账号，一行一个'); return; }
+  var role = document.getElementById('role').value;
+  var exp = computeExp();
+  if (!(exp > Date.now())) { alert('到期时间要晚于现在'); return; }
+  btn.disabled = true; btn.textContent = '签发中…';
+  results = [];
+  var chain = Promise.resolve();
+  list.forEach(function(item){
+    chain = chain.then(function(){
+      return signOne(item.sid, role, exp).then(function(tok){
+        results.push({ sid: item.sid, name: item.name || '—', role: role, token: tok, exp: exp });
+      });
+    });
+  });
+  chain.then(function(){
+    render();
+    btn.disabled = false; btn.textContent = '生成授权串';
+  }).catch(function(e){
+    alert('签发失败：' + e.message);
+    btn.disabled = false; btn.textContent = '生成授权串';
+  });
+};
+
+function render(){
+  var tb = document.getElementById('rows');
+  tb.innerHTML = '';
+  results.forEach(function(r){
+    var tr = document.createElement('tr');
+    var exp = new Date(r.exp);
+    tr.innerHTML = '<td>' + esc(r.sid) + '</td><td>' + esc(r.name) + '</td><td>' + (r.role === 'admin' ? '管理员' : '学生') + '</td>' +
+      '<td><code>' + esc(r.token) + '</code></td><td>' + exp.toLocaleDateString('zh-CN') + '</td>';
+    tb.appendChild(tr);
+  });
+  document.getElementById('result-card').style.display = 'block';
+  document.getElementById('count').textContent = '共 ' + results.length + ' 条';
+  document.getElementById('btn-csv').disabled = false;
+  document.getElementById('btn-copy').disabled = false;
+}
+function esc(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('btn-csv').onclick = function(){
+  var lines = ['学号,姓名,角色,到期,授权串'];
+  results.forEach(function(r){
+    lines.push([r.sid, r.name, r.role === 'admin' ? '管理员' : '学生',
+      new Date(r.exp).toLocaleString('zh-CN'), r.token].join(','));
+  });
+  var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '授权串_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+document.getElementById('btn-copy').onclick = function(){
+  var text = results.map(function(r){ return r.sid + '\t' + r.token; }).join('\n');
+  copyText(text).then(function(){ alert('已复制 ' + results.length + ' 条'); });
+};
+document.getElementById('btn-clear').onclick = function(){
+  document.getElementById('list').value = '';
+  document.getElementById('rows').innerHTML = '';
+  document.getElementById('result-card').style.display = 'none';
+  results = [];
+  document.getElementById('btn-csv').disabled = true;
+  document.getElementById('btn-copy').disabled = true;
+};
+
+function copyText(t){
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(t).catch(function(){ return legacyCopy(t); });
+  }
+  return Promise.resolve(legacyCopy(t));
+}
+function legacyCopy(t){
+  var ta = document.createElement('textarea');
+  ta.value = t; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) { }
+  ta.remove();
+}
+
+/* 管理员闸门：只有平台里管理员登录过本机，才放行 */
+(function(){
+  var ok = false;
+  try {
+    var raw = localStorage.getItem('adp_session');
+    if (raw) {
+      var s = JSON.parse(raw);
+      ok = (s && s.role === 'admin');
+    }
+  } catch (e) { }
+  document.getElementById('main').style.display = ok ? 'block' : 'none';
+  document.getElementById('deny').style.display = ok ? 'none' : 'block';
+})();
+</script>
+</body>
+</html>
