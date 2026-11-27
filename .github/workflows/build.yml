@@ -9,7 +9,7 @@ on:
 env:
     NAME: AdpDynamic
     VERSION: 4.0.0
-    ISHTML: "true"
+    ISHTML: "false"
     PUBBODY: "应用系统开发交付平台 3.0.0（内置全部页面 + 管理员授权码签发器）"
 
 permissions:
