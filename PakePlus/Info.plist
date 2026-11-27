@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>DEBUG</key>
-	<true/>
+	<false/>
 	<key>FULLSCREEN</key>
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -26,8 +26,8 @@
 	<key>USERAGENT</key>
 	<string></string>
 	<key>WEBURL</key>
-	<string>https://www.pakeplus.com/</string>
+	<string>https://www.pakeplus.com/local</string>
 	<key>CFBundleDisplayName</key>
-	<string>PakePlus</string>
+	<string>应用系统开发交付平台</string>
 </dict>
 </plist>
