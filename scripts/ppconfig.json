@@ -163,13 +163,13 @@
     "ios": {
         "name": "AdpDynamic",
         "showName": "应用系统开发交付平台",
-        "version": "2.1.0",
-        "webUrl": "https://juejin.cn/",
+        "version": "2.2.0",
+        "webUrl": "http://8.136.213.218",
         "id": "com.tengxingran.adp",
         "icon": "./app-icon.png",
         "desc": "应用系统开发交付平台 离线版（内置全部页面，管理员可离线分发）",
         "pubBody": "应用系统开发交付平台 离线版",
-        "isHtml": true,
+        "isHtml": false,
         "debug": false,
         "safeArea": "all"
     },
