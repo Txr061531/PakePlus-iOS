@@ -16,6 +16,7 @@
 			membershipExceptions = (
 				Info.plist,
 				"Preview Content/Preview Assets.xcassets",
+				index.html,
 			);
 			target = E43DF9142D9808470092BCB3 /* PakePlus */;
 		};
