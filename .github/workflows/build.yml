@@ -8,9 +8,9 @@ on:
 
 env:
     NAME: AdpDynamic
-    VERSION: 2.1.0
+    VERSION: 3.0.0
     ISHTML: "true"
-    PUBBODY: "应用系统开发交付平台 离线版（内置全部页面，管理员可离线分发）"
+    PUBBODY: "应用系统开发交付平台 3.0.0（内置全部页面 + 管理员授权码签发器）"
 
 permissions:
     contents: write
